@@ -1,0 +1,14 @@
+AngularJS深度剖析与最佳时间
+禁用HTML5内置表单校验效果
+	<form novalidate = "novalidate"></form>
+	
+H5自带required与ng-required区别
+	后者可以通过scope中的boolean值来进行编程控制
+
+除了下列指令以外的所有angular内置指令，都*不需要*把值用{{}}包起来
+	ng-src/ng-href/ng-bind-template/ng-srcset
+
+对于ng的数据校验，ng会对各种验证器（兼容ng内置和H5内置的验证器，如input type="email"，required等）按照一定的优先级和出现顺序依次进行验证
+如果任意一个验证不成功，那么ng会在ng-model绑定的变量上增加一个$error对象（对象名和验证器一致）来存放验证结果
+只有当验证成功的时候，ng才会将用户输入的值重新赋值给ng-model锁绑定的变量
+
