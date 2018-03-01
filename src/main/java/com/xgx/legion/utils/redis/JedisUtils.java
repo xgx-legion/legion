@@ -69,6 +69,7 @@ public class JedisUtils {
 				log.error("获取jedis失败！", e);
 				closeJedis(jedis, ip, port);
 			}
+			count ++;
 		} while (jedis == null && count < RedisConfig.RETRY_NUM);
 
 		return jedis;
