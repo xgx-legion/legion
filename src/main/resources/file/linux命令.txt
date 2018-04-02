@@ -1,0 +1,44 @@
+sit通用账号
+账户：admin      密码：P#ssW0rd213
+
+136代码同步
+sudo -u rsync ./scpfile_v3.0.sh
+
+
+远程DEBUG
+remote java application配置远程连接的host和port
+tomcat/bin目录下
+sh ./catalina.sh jpda run
+
+
+linux打包命令
+tar -czvf msweb.1220.tar.gz ./MSWeb
+
+
+查看进程
+ps -ef | grep ***
+kill -9 *pid
+
+日志
+tail -f /usr/local/tomcat_MS/logs/catalina.out
+
+tomcat远程调试步骤
+1、配置启动文件(catalina.sh)
+JAVA_OPTS='-server -Xmx1400m -Xms600m  -XX:PermSize=128M -XX:MaxPermSize=512m'
+SET CATALINA_OPTS="-server -Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000"
+
+2、关闭防火墙（Linux）  service iptables stop (即时生效，重启后失效 )
+
+3、进入tomcat的bin目录，输入./catalina.sh jpda run或者./catalina.sh jpda start命令启动tomcat
+
+4、测试远程端口是否开启 telnet 192.168.3.42 2121（本机）
+
+5、eclipse上debug
+
+
+清空文本
+cat /dev/null > filename
+
+
+NPM清理缓存
+npm cache clean --force
