@@ -1,0 +1,76 @@
+开启&关闭表关联
+alter table db_table enable row movement;
+alter table db_table disable row movement;
+
+
+查看oracel事务锁定记录
+SELECT s.* FROM v$locked_object lo, dba_objects ao, v$session s WHERE ao.object_id = lo.object_id AND lo.session_id = s.sid; 
+删除被锁定事物
+ALTER system KILL session '543,27525';
+
+
+Sublime Text3中文乱码问题解决方案
+1.Ctrl + ~ 打开控制台  输入下面指令并回车等待安装Package Controller插件
+import urllib.request,os; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); open(os.path.join(ipp, pf), 'wb').write(urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ','%20')).read())
+2.重启Sublime
+3.Ctrl + Shift + P 打开命令行，查找install package，点击Package Controller:install package开始安装
+4.Ctrl + Shift + P 打开命令行，查找ConvertToUTF8或者GBK Encoding Support，点击安装，等待安装完毕乱码问题解决
+
+
+======== Calendar ==================================
+Date date = new Date();  
+Calendar c = Calendar.getInstance();  
+c.setTime(date);
+------------------------------------
+//Calendar.YEAR:日期中的年  
+int year = c.get(Calendar.YEAR);  
+//Calendar.MONTH:日期中的月，需要加1  
+int mounth = c.get(Calendar.MONTH) + 1;  
+//Calendar.DATE:日期中的日  
+int day = c.get(Calendar.DATE);  
+//Calendar.HOUR:日期中的小时(12小时制)  
+int hour = c.get(Calendar.HOUR);  
+//Calendar.HOUR_OF_DAY：24小时制  
+int HOUR_OF_DAY = c.get(Calendar.HOUR_OF_DAY);  
+//Calendar.MINUTE:日期中的分钟  
+int minute = c.get(Calendar.MINUTE);  
+//Calendar.SECOND:日期中的秒  
+int second = c.get(Calendar.SECOND);   
+//Calendar.WEEK_OF_YEAR:当前年中星期数  
+int WEEK_OF_YEAR = c.get(Calendar.WEEK_OF_YEAR);  
+//Calendar.WEEK_OF_MONTH:当前月中星期数  
+int WEEK_OF_MONTH = c.get(Calendar.WEEK_OF_MONTH);  
+//Calendar.DAY_OF_YEAR:当前年中的第几天  
+int DAY_OF_YEAR = c.get(Calendar.DAY_OF_YEAR);  
+//Calendar.DAY_OF_MONTH:当前月中的第几天  
+int DAY_OF_MONTH = c.get(Calendar.DAY_OF_MONTH);  
+//Calendar.DAY_OF_WEEK:当前星期的第几天(星期天表示第一天，星期六表示第七天)  
+int  DAY_OF_WEEK = c.get(Calendar.DAY_OF_WEEK);  
+//Calendar.DAY_OF_WEEK_IN_MONTH:当前月中的第几个星期  
+int DAY_OF_WEEK_IN_MONTH = c.get(Calendar.DAY_OF_WEEK_IN_MONTH);  
+===================================================
+
+
+
+
+根据多个字段去重，并按时间倒序，取第一条数据
+select  t.*  
+   from (select a.*, row_number() over(partition by 需要分组的字段(多个用逗号隔开) order by 时间 desc) rw  
+           from 表 a) t  
+  where t.rw = 1
+
+
+如果insert或update语句中带有&符号，oracel将认为是一个需要输入值的参数
+执行SET DEFINE OFF;即可关闭此次识别
+
+
+
+添加访问权限与同义词
+--非备付金库访问会员库t_merchant表加同义词SQL 
+GRANT SELECT ON MEMBER.T_MERCHANT TO FBFJ; 
+CREATE OR REPLACE SYNONYM FBFJ.T_MERCHANT FOR MEMBER.T_MERCHANT;
+
+
+
+复制表数据
+insert into test1(name, payclass_id) select name, '51' from test
