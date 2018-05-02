@@ -1,0 +1,433 @@
+/**
+     * 日期选择控件(整合版、隔离子作用域)
+     * controller中通过$on方式获取日期，例：
+     * $scope.$on('分组名+Start(End)',function(event, date){})
+     * 其中date为日期
+     */
+    .directive('mmsDatePicker', function(){
+    	return {
+    		restrict: 'E',
+    		scope: {
+    			pickerGroup : '=group', // 分组名，用于区分不同地方日期组件，*必传，且务必保证同一页面中的唯一性*
+    			quickPicker : '=qk', // 是否显示快捷日期
+    			quickDefault : '=qdf', // 显示快捷日期时，快捷日期默认日期
+    			timeFlag : '=tn'
+    		},
+    		template: 	'<div class="md-small-width" ng-show="showQuick">'+	
+						'<label class="uk-form-labela" ></label>'+
+						'<select class="uk-width-1-1 kendo-drop" kendo-drop-down-list k-ng-model="currentDate" k-value-primitive="true">'+
+						'<option value="0">{{\'quickDate_title\'|translate}}</option>'+
+						'<option value="1">{{\'quickDate_today\'|translate}}</option>'+
+						'<option value="2">{{\'quickDate_yesterday\'|translate}}</option>'+
+						'<option value="3">{{\'quickDate_within2days\'|translate}}</option>'+
+						'<option value="4">{{\'quickDate_thisWeek\'|translate}}</option>'+
+						'<option value="5">{{\'quickDate_lastWeek\'|translate}}</option>'+
+						'<option value="6">{{\'quickDate_within1week\'|translate}}</option>'+
+						'<option value="7">{{\'quickDate_thisMonth\'|translate}}</option>'+
+						'<option value="8">{{\'quickDate_lastMonth\'|translate}}</option>'+
+						'<option value="9">{{\'quickDate_within1month\'|translate}}</option>'+
+						'<option value="10">{{\'quickDate_within2month\'|translate}}</option>'+
+						'<option value="11">{{\'quickDate_within3month\'|translate}}</option>'+
+						'</select>'+
+						'</div>'+
+						// 带时分秒
+    					'<div class="ukt-small-date-wall uk-clearfix" ng-show="isTimeShow">'+
+    					'<div class="md-small-width uk-float-left ukt-date-box">'+	
+    					'<label class="uk-form-date-label"></label>'+
+    					'<input placeholder="{{\'dateTimePicker_startDate\'|translate}}" kendo-date-time-picker ng-model="startStr" k-ng-model="startDate" k-rebind="maxDate" k-min="startMinDate" k-max="maxDate" k-options="startOptions" k-on-change="startDateChanged()" class="start-date uk-form-width-medium uk-text-muted uk-text-small" />'+
+    					'</div>'+
+    					'<div class="uk-xiao-heng">-</div>'+
+    					'<div class="md-small-width uk-float-left ukt-date-box">'+	
+    					'<label class="uk-form-date-label"></label>'+
+    					'<input placeholder="{{\'dateTimePicker_endDate\'|translate}}" kendo-date-time-picker ng-model="endStr" k-ng-model="endDate" k-rebind="minDate" k-min="minDate" k-max="endMaxDate" k-options="endOptions" k-on-change="endDateChanged()" class="start-date uk-form-width-medium uk-text-muted uk-text-small" />'+
+    					'</div>'+
+    					'</div>'+
+    					// 不带时分秒
+    					'<div class="ukt-small-date-wall uk-clearfix" ng-hide="isTimeShow">'+
+    					'<div class="md-small-width uk-float-left ukt-date-box">'+	
+    					'<label class="uk-form-date-label"></label>'+
+    					'<input placeholder="{{\'dateTimePicker_startDate\'|translate}}" kendo-date-picker ng-model="startStr" k-ng-model="startDate" k-rebind="maxDate" k-min="startMinDate" k-max="maxDate" k-options="startOptions" k-on-change="startDateChanged()" class="start-date uk-form-width-medium uk-text-muted uk-text-small" />'+
+    					'</div>'+
+    					'<div class="uk-xiao-heng">-</div>'+
+    					'<div class="md-small-width uk-float-left ukt-date-box">'+	
+    					'<label class="uk-form-date-label"></label>'+
+    					'<input placeholder="{{\'dateTimePicker_endDate\'|translate}}" kendo-date-picker ng-model="endStr" k-ng-model="endDate" k-rebind="minDate" k-min="minDate" k-max="endMaxDate" k-options="endOptions" k-on-change="endDateChanged()" class="start-date uk-form-width-medium uk-text-muted uk-text-small" />'+
+    					'</div>'+
+    					'</div>',
+    		controller: ['$scope','$rootScope','$filter','$interval',function($scope,$rootScope,$filter,$interval){
+    			// 是否已分组
+    			if($scope.pickerGroup == null || $scope.pickerGroup == ""){
+    				console.error("日期组件未分组!配置组件的group属性，并保证同一页面中该值的唯一性");
+    				return;
+    			}
+    			var group = $scope.pickerGroup;
+    			
+    			/*
+    			 * 快捷日期
+    			 */
+    			var quickStr = [0,1,2,3,4,5,6,7,8,9,10,11];
+    			$scope.showQuick = false;
+    			if($scope.quickPicker != null && $scope.quickPicker){
+    				$scope.showQuick = true;
+    				$scope.currentDate = '0';
+    			}
+    			if($scope.showQuick && $scope.quickDefault != null){
+    				var flag = false;
+    				for(var i=0; i<quickStr.length; i++){
+    					$scope.currentDate = $scope.quickDefault;
+    					if(quickStr[i] == $scope.quickDefault){
+    						flag = true;
+    						break;
+    					}
+    				}
+    				if(!flag){
+    					$scope.currentDate = '0';
+    				}
+    			}
+    			
+    			$scope.$watch('currentDate',function(){
+					if(null == $scope.currentDate){
+						return;
+					}
+					// 快捷日期
+					if($scope.currentDate == "0"){
+						$scope.maxDate = new Date();
+	                	$scope.month3limit();
+						$scope.startDate = null;
+						$scope.startStr = null;
+						$scope.minDate = new Date();
+						if(null != $scope.startMinDate){
+							$scope.minDate.setFullYear($scope.startMinDate.getFullYear());
+	                		$scope.minDate.setMonth($scope.startMinDate.getMonth());
+	                		$scope.minDate.setDate($scope.startMinDate.getDate());
+						}
+						$scope.endDate = null;
+						$scope.endStr = null;
+					}
+					// 今日(0:00-当前时间)
+					if($scope.currentDate == "1"){
+						$scope.startDate = new Date();
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.endDate = $scope.endMaxDate;
+					}
+					// 昨日(昨日0:00-23:59)
+					if($scope.currentDate == "2"){
+						$scope.startDate = new Date();
+						$scope.startDate.setDate($scope.maxDate.getDate()-1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						
+						$scope.endDate = new Date();
+						$scope.endDate.setDate($scope.endMaxDate.getDate()-1);
+						$scope.endDate.setHours(23);
+						$scope.endDate.setMinutes(59);
+						$scope.endDate.setSeconds(59);
+					}
+					// 近两日(昨天0:00-当前时间)
+					if($scope.currentDate == "3"){
+						$scope.startDate = new Date();
+						$scope.startDate.setDate($scope.maxDate.getDate()-1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = $scope.endMaxDate;
+					}
+					// 本周(本周一0:00-当前时间)
+					if($scope.currentDate == "4"){
+						$scope.startDate = new Date();
+						$scope.startDate.setDate($scope.startDate.getDate()-$scope.startDate.getDay()+1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = $scope.endMaxDate;
+					}
+					// 上周(上周一0:00-上周日23:59)
+					if($scope.currentDate == "5"){
+						$scope.startDate = new Date();
+						$scope.startDate.setDate($scope.startDate.getDate()-7-$scope.startDate.getDay()+1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = new Date();
+						$scope.endDate.setDate($scope.endMaxDate.getDate()-$scope.endMaxDate.getDay());
+						$scope.endDate.setHours(23);
+						$scope.endDate.setMinutes(59);
+						$scope.endDate.setSeconds(59);
+					}
+					// 近一周(往前推7天)
+					if($scope.currentDate == "6"){
+						$scope.startDate = new Date();
+						$scope.startDate.setDate($scope.startDate.getDate()-7);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = $scope.endMaxDate;
+					}
+					// 本月(本月1日0:00-当前时间)
+					if($scope.currentDate == "7"){
+						$scope.startDate = new Date();
+						$scope.startDate.setDate(1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = $scope.endMaxDate;
+					}
+					// 上个月(上月1号0:00-上月底23:59)
+					if($scope.currentDate == "8"){
+						$scope.startDate = new Date();
+						$scope.startDate.setMonth($scope.startDate.getMonth()-1);
+						$scope.startDate.setDate(1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = new Date();
+						$scope.endDate.setDate(0);
+						$scope.endDate.setHours(23);
+						$scope.endDate.setMinutes(59);
+						$scope.endDate.setSeconds(59);
+					}
+					// 近一个月(往前推30天)
+					if($scope.currentDate == "9"){
+						$scope.startDate = new Date();
+						$scope.startDate.setMonth($scope.startDate.getMonth()-1);
+						$scope.startDate.setDate($scope.startDate.getDate()+1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = $scope.endMaxDate;
+					}
+					// 近两个月(两个月前1号0:00-当前时间)
+					if($scope.currentDate == "10"){
+						$scope.startDate = new Date();
+						$scope.startDate.setMonth($scope.startDate.getMonth()-2);
+						$scope.startDate.setDate($scope.startDate.getDate()+1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+						
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = $scope.endMaxDate;
+					}
+					// 近三个月(三个月前-当前时间)
+					if($scope.currentDate == "11"){
+//						if(null != $scope.startMinDate){
+//							$scope.startDate = $scope.startMinDate;
+//						}else{
+//							
+//						}
+						$scope.startDate = new Date();
+						$scope.startDate.setMonth($scope.startDate.getMonth()-3);
+						$scope.startDate.setDate($scope.startDate.getDate()+1);
+						$scope.startDate.setHours(0);
+						$scope.startDate.setMinutes(0);
+						$scope.startDate.setSeconds(0);
+
+						$scope.minDate = $scope.startDate;
+						$scope.endDate = $scope.endMaxDate;
+					}
+					// 向外推送开始日期和结束日期
+					$scope.$emit(group+"Start", $scope.startDate);
+	                $scope.$emit(group+"End", $scope.endDate);
+				});
+    			
+    			/*
+    			 * 日期选择框
+    			 */
+    			
+    			// 格式初始化
+    			
+    			// 是否显示时分秒 
+    			$scope.isTimeShow = true;
+    			if($scope.timeFlag != null && !$scope.timeFlag){
+    				$scope.isTimeShow = false;
+    			}
+    			if($scope.isTimeShow){
+    				$scope.startOptions = {
+    	    				format : "yyyy/MM/dd H:mm:ss",
+    	    				timeFormat : "H:mm:ss",
+    	    				interval : 1
+    	    			}
+    	    			
+    	    			$scope.endOptions = {
+    						format : "yyyy/MM/dd H:mm:59",
+    	    				timeFormat : "H:mm:59",
+    	    				interval : 1
+    	    			}
+    			}else{
+    				$scope.startOptions = {
+	    				format : "yyyy/MM/dd",
+	    				interval : 1
+	    			}
+	    			
+	    			$scope.endOptions = {
+						format : "yyyy/MM/dd",
+	    				interval : 1
+	    			}
+    			}
+    			
+    						
+//    			$scope.$watch('endStr',function(){
+//    				$scope.endStr = $filter("date")($scope.endDate,'yyyy/MM/dd H:mm:59');
+//    				$scope.endDate.setSeconds(59);
+//    			});
+    			
+    			$scope.$watch('endDate',function(){
+    				if(null != $scope.endDate){
+    					$scope.endStr = $filter("date")($scope.endDate,'yyyy/MM/dd H:mm:59');
+        				$scope.endDate.setSeconds(59);
+    				}
+    			});
+    			
+    			// 国际化
+    			var count = 0;
+    			$rootScope.$watch('isEnUs()', function(){
+    				while(count == 0){
+    					doCalendar();
+    					count ++;
+    				}
+    				if($rootScope.isEnUs()){
+        				kendo.culture("en-US");
+        				if(null != $scope.startDate){
+        					doCalendar();
+        				}
+        			}else{
+        				kendo.culture("zh-CN");
+        				if(null != $scope.startDate){
+        					doCalendar();
+        				}
+        			}
+    			});
+    			
+    			var doCalendar = function(){
+    				$scope.maxDate = new Date();
+                    $scope.minDate = new Date();
+                    //结束日期最大可选时间设置为当天23：59：59
+                    $scope.endMaxDate = new Date();
+                    $scope.endMaxDate.setHours(23,59,59);
+                    
+                    $scope.startMinDate = new Date();
+                    $scope.month3limit = function(){
+                    	var tempDate = new Date();
+                    	if(null == $scope.endDate){
+                    		tempDate = $scope.maxDate;
+                    	}else{
+                    		tempDate = $scope.endDate;
+                    	}
+                    	
+                    	// 最小可选时间，前三个月
+                    	if(tempDate.getMonth()-2 < 1){
+                    		$scope.startMinDate.setFullYear(tempDate.getFullYear()-1);
+                    	}else{
+                    		$scope.startMinDate.setFullYear(tempDate.getFullYear());
+                    	}
+                    	switch (tempDate.getMonth()+1) {   
+	                    	case 3 : 
+	                    		$scope.startMinDate.setMonth(11);
+	                    		break;
+	                    	case 2 : 
+	                    		$scope.startMinDate.setMonth(10);
+	                    		break;
+	                    	case 1 : 
+	                    		$scope.startMinDate.setMonth(9);
+	                    		break;
+	                    	default : 
+	                    		$scope.startMinDate.setMonth(tempDate.getMonth()-3);
+                    	}
+//                    	if(null != $scope.startDate){
+//                        	$scope.startMinDate.setDate($scope.startDate.getDate());
+//                    	}
+                		
+                		//console.log($scope.startMinDate.getMonth());
+                		
+                		// 最小开始时间随结束时间变化，但不能超过6个月
+                		var tempMonth = $scope.maxDate.getMonth() - 5;
+                		// 获取当前月份六个月前的月份
+            			tempMonth = tempMonth==0?12:tempMonth==-1?11:tempMonth==-2?10:tempMonth==-3?9:tempMonth==-4?8:tempMonth==-5?7:tempMonth;
+            			if($scope.maxDate.getFullYear() > $scope.startMinDate.getFullYear()){
+            				$scope.startMinDate.setFullYear($scope.maxDate.getFullYear());
+            				$scope.startMinDate.setMonth(tempMonth - 1);
+            			}else{
+            				if(tempMonth > ($scope.startMinDate.getMonth() + 1)){
+            					$scope.startMinDate.setMonth(tempMonth - 1);
+                    		}
+            			}
+            			
+                		// 确保最小开始时间不小于60天
+                		$scope.startMinDate.setDate(tempDate.getDate());
+                		if(($scope.startMinDate.getMonth() + 1) == tempMonth){
+                			if($scope.startMinDate.getDate() < $scope.maxDate.getDate()){
+                    			$scope.startMinDate.setDate($scope.maxDate.getDate());
+                    		}
+                		}
+                    	$scope.startMinDate.setHours(0);
+                		$scope.startMinDate.setMinutes(0);
+                		$scope.startMinDate.setSeconds(0);
+                    }
+                    $scope.month3limit();
+    			}
+    			//doCalendar();
+    			
+    			// 开始时间发生变化
+    			$scope.startDateChanged = function(){
+                	if(null == $scope.startDate){
+                		$scope.minDate = new Date();
+                		$scope.minDate.setFullYear($scope.startMinDate.getFullYear());
+                		$scope.minDate.setMonth($scope.startMinDate.getMonth());
+                		$scope.minDate.setDate($scope.startMinDate.getDate());
+                	}else{
+                		// 开始时间不能大于结束时间
+                		if($scope.startDate > $scope.endDate){
+                			$scope.endDate = null;
+                    	}
+                		$scope.minDate = $scope.startDate;
+                	}
+                	$scope.month3limit();
+                	// 向外推送开始日期
+                    $scope.$emit(group+"Start", $scope.startDate);
+                };
+                
+                // 结束时间发生变化
+                $scope.endDateChanged = function(){
+                	if($scope.startDate > $scope.endDate){
+                		$scope.startDate = null;
+              		}
+                	$scope.maxDate = new Date();
+                	$scope.month3limit();
+                	// 如果开始时间小于最小开始时间
+                	if(null != $scope.startDate && $scope.startDate < $scope.startMinDate){
+                		$scope.startDate = new Date();
+                		$scope.startDate.setFullYear($scope.startMinDate.getFullYear());
+                		$scope.startDate.setMonth($scope.startMinDate.getMonth());
+                		$scope.startDate.setDate($scope.startMinDate.getDate());
+                		$scope.startDate.setHours(0);
+                		$scope.startDate.setMinutes(0);
+                		$scope.startDate.setSeconds(0);
+                		$scope.startDateChanged();
+                	}
+                	// 向外推送结束日期
+                    $scope.$emit(group+"End", $scope.endDate);
+                };
+    			
+    		}]
+    	}
+    })

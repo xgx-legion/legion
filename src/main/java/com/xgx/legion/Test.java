@@ -9,8 +9,8 @@ import java.io.OutputStreamWriter;
 
 public class Test {
 	public static void main(String[] args) {
-		String sourcePath = "D:/需求/s_ms/20180126/SQL/2001111844.txt";
-		String targetPath = "D:/需求/s_ms/20180126/SQL/2001111844.sql";
+		String sourcePath = "D:/test/test1.txt";
+		String targetPath = "D:/test/proxy2.sql";
 		
 		
 		try {
@@ -21,31 +21,34 @@ public class Test {
 			String line = "";
 			StringBuffer outLine = new StringBuffer();
 			int count = 0;
+			
+			outLine.append("select * from t_proxy where proxy_id in (");
+			
 			while((line = bufReader.readLine()) != null){
-				count ++;
-				outLine = new StringBuffer(); 
-				String[] lines = line.split(",");
-				outLine.append("INSERT INTO T_ACCOUNT_LINE_V1 (ACCOUNT_ID,ACCOUNT_TYPE_ID,ACCOUNT_SEQID,ACCOUNT_TRADETYPE_ID,ACCOUNT_BELONGTIME,ACCOUNT_BILLNUMBER,ACCOUNT_AMOUNT_CHANGED,ACCOUNT_FROZENAMOUNT_CHANGED,AVAILABLEAMOUNT_CHANGED,ACCOUNT_AMOUNT, ACCOUNT_FROZENAMOUNT,ACCOUNT_AVAILBLEAMOUNT) VALUES(")
-				.append("\'").append(lines[0]).append("\'").append(",")
-				.append("\'").append(lines[1]).append("\'").append(",")
-				.append("\'").append(lines[2]).append("\'").append(",")
-				.append("\'").append(lines[3]).append("\'").append(",")
-				.append("TO_DATE(\'").append(lines[4]).append("\',\'yyyy-MM-dd HH24:mi:ss\')").append(",")
-				.append("\'").append(lines[5]).append("\'").append(",")
-				.append(lines[6]).append(",")
-				.append(lines[7]).append(",")
-				.append(lines[8]).append(",")
-				.append(lines[9]).append(",")
-				.append(lines[10]).append(",")
-				.append(lines[11]).append(");");
-				// 写入到目标文件
-				bufWrite.write(outLine.toString());
-				bufWrite.newLine();
+				if(count < 900){
+					count++;
+					continue;
+				}
+				if(count == 900 * 2){
+					break;
+				}
 				
+				if(line.length() > 8){
+					continue;
+				}else{
+					outLine.append("\'"+line+"\'").append(",");
+				}
+				
+				count ++;
 				System.out.println(count);
 				continue;
 			}
-			bufWrite.write("commit;");
+			outLine.append(");");
+			
+			// 写入到目标文件
+			bufWrite.write(outLine.toString());
+//			bufWrite.newLine();
+//			bufWrite.write("commit;");
 			bufReader.close();
 			inReader.close();
 			bufWrite.close();

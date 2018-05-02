@@ -74,3 +74,144 @@ CREATE OR REPLACE SYNONYM FBFJ.T_MERCHANT FOR MEMBER.T_MERCHANT;
 
 复制表数据
 insert into test1(name, payclass_id) select name, '51' from test
+
+
+
+智付批量导入商家信息模版.xls
+
+
+线上表空间
+建表：
+create table a (
+xxx int) tablespace xxxx;
+建索引：
+create index xxxx on a (xx) tablespace xxx;
+新建主键约束：
+alter table a add constraint xxx primary key (xxx,xxx) using index tablespace xxx;
+---------------------------------------------分隔符------------------------------------------------------
+在生产库相关用户的表空间如下：
+
+orders的表空间
+表数据：dat_orders
+索引&约束：idx_orders
+
+member的表空间
+表数据：dat_member
+索引&约束：idx_member
+
+account的表空间
+表数据：dat_account
+索引&约束：idx_account
+
+sysdb的表空间：
+表数据：dat_sysdb
+索引&约束：idx_sysdb
+
+risk的表空间：
+表数据：dat_risk
+索引&约束：idx_risk
+
+exchanges的表空间：
+表数据：dat_exchanges
+索引&约束：idx_exchanges
+
+
+
+----------------------------------------------------------
+新系统数据库环境信息，请同事对应使用，开发用开发的，测试用测试的，别串了。。。
+    数据和结构根据sit 192.168.5.59克隆的，交易数据2018年之前的都删除了，有问题及时联系
+【DEV】192.168.49.140
+TNS：
+test140 =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = 192.168.49.140)(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = dbdata)
+    )
+  )
+
+用户/密码：
+ddsz_orders/orders
+ddsz_account/account
+ddsz_member/member
+ddsz_sysdb/sysdb
+ddsz_risk/risk
+ddsz_cashreserve/cashreserve
+ddsz_exchanges/exchanges
+ddsz_bill/bill
+ddsz_aml/aml
+ddsz_fbfj/fbfj
+ddsz_pbci/pbci
+ddsz_recon/recon
+
+【SIT】192.168.5.59
+TNS:
+test59 =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = 192.168.5.59)(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = testa)
+    )
+  )
+
+用户/密码：
+ddszorders2/orders
+ddszaccount2/account
+ddszmember2/member
+ddszsysdb2/sysdb
+ddszrisk2/risk
+ddszcashreserve2/cashreserve
+ddszexchanges2/exchanges
+ddszbill2/bill
+ddszaml2/aml
+ddszfbfj2/fbfj
+ddszpbci2/pbci
+ddszrecon2/recon
+
+【UAT】192.168.49.181
+TNS:
+test181 =
+  (DESCRIPTION =
+    (ADDRESS_LIST =
+      (ADDRESS = (PROTOCOL = TCP)(HOST = 192.168.1.184)(PORT = 1521))
+    )
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = rac)
+      (sid = rac1)
+    )
+  )
+
+用户/密码：
+ddszorders/orders
+ddszaccount/account
+ddszmember/member
+ddszsysdb/sysdb
+ddszrisk/risk
+ddszcashreserve/cashreserve
+ddszexchanges/exchanges
+ddszbill/bill
+ddszaml/aml
+ddszfbfj/fbfj
+ddszpbci/pbci
+ddszrecon/recon
+-------------------------------------------------------------------
+
+
+
+
+1.打完tag后要把分支删除的，因为开发都有权限删除未保护的分支所以删除时候务必确认清楚再删除 
+2.理论上打完master包上线后再有问题要走新计划，不能再在原来计划上打master包 
+3.共享包里面的版本上线后要拖到已上线里面
+
+
+
+
+-----------------------------------------------------------------
+
+例子
+--非备付金库访问会员库t_merchant表加同义词SQL 
+GRANT SELECT ON MEMBER.T_MERCHANT TO FBFJ; 
+CREATE OR REPLACE SYNONYM FBFJ.T_MERCHANT FOR MEMBER.T_MERCHANT;
